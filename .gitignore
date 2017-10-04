@@ -16,3 +16,6 @@ TAGS
 
 ## ignore local dbs
 *.db
+
+## ignore generated pdfs
+*.pdf

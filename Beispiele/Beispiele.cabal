@@ -2,7 +2,7 @@ name:                Beispiele
 version:             0.1.0.0
 synopsis:            Beispielprojekte für den Haskell-Kurs (Oktober 2017 - Leipzig)
 
-homepage:            https://github.com/CarstenKoenig/HaskellKurs/Beispiele#readme
+homepage:            https://github.com/CarstenKoenig/Haskell_Okt2017_Leipzig/Beispiele#readme
 license:             BSD3
 license-file:        LICENSE
 author:              Carsten Koenig
@@ -50,4 +50,4 @@ test-suite Beispiele-test
 
 source-repository head
   type:     git
-  location: https://github.com/CarstenKoenig/HaskellKurs/Beispiele
+  location: https://github.com/CarstenKoenig/Haskell_Okt2017_Leipzig/Beispiele
