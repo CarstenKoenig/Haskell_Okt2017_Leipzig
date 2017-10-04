@@ -1,0 +1,18 @@
+
+## stack
+
+.stack-work/
+
+## elm
+
+elm-stuff/
+static/js/client.js
+src/client/api.elm
+
+## emacs
+TAGS
+.#*
+.dir-locals.el
+
+## ignore local dbs
+*.db
