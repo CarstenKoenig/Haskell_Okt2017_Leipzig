@@ -27,6 +27,12 @@ class Functor (f :: * -> *) where
 
 `<$>` ist Operator für `fmap`
 
+## Laws
+
+- `fmap id = id`
+- `fmap (g . h) = (fmap g) . (fmap h)`
+
+
 ## Beispiele
 
 - Listen
@@ -74,6 +80,7 @@ mit `{-# LANGUAGE DeriveFunctor #-}` kann fast jeder ADT zu einem Funktor gemach
 
 ## Functor sind sind *komposierbar*
 
+### Komposition
 ```haskell
 newtype Compose f g a = Compose (f (g a))
   deriving Show
@@ -89,10 +96,40 @@ example :: MaybeList String
 example = fmap show $ Compose [Just 5, Nothing, Just 4]
 ```
 
-## Laws
+### Coprodukt
+```haskell
+newtype Coproduct f g a = Coproduct (Either (f a) (g a))
+  deriving Show
 
-- `fmap id = id`
-- `fmap (g . h) = (fmap g) . (fmap h)`
+
+instance (Functor f, Functor g) => Functor (Coproduct f g) where
+  fmap f (Coproduct (Left x)) = Coproduct (Left $ fmap f x)
+  fmap f (Coproduct (Right y)) = Coproduct (Right $ fmap f y)
+
+
+type MaybeOrList a = Coproduct Maybe [] a
+
+exampleL :: MaybeOrList String
+exampleL = fmap show $ Coproduct (Left $ Just 5)
+
+exampleR :: MaybeOrList String
+exampleR = fmap show $ Coproduct (Right $ [7])
+```
+
+## *exotische* Funktoren
+
+```haskell
+newtype Ident a = Ident { runId :: a }
+
+instance Functor Ident where
+  fmap f (Ident a) = Ident (f a)
+
+
+newtype Const b a = Const { runConst :: b }
+
+instance Functor (Const b) where
+  fmap f (Const b) = Const b
+```
 
 
 ## heftiges Beispiel Recursion Schemes
