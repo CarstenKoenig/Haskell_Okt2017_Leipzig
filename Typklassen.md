@@ -334,7 +334,7 @@ module EventStore.Projections
 where
 
 import Data.Maybe (catMaybes)
-import Data.List (foldl')
+import Data.Foldable (foldl')
 import Control.Applicative ((<|>))
 import Control.Arrow ((***))
 
@@ -363,7 +363,7 @@ zipP (MkProj ia fda fia) (MkProj ib fdb fib) =
     fold (sa,sb) ev = (fda sa ev, fdb sb ev)
 
 
-getResult :: Projection ev a -> [ev] -> a
+getResult :: Foldable f => Projection ev a -> f ev -> a
 getResult (MkProj init fold final) =
   final . foldl' fold init
 
@@ -403,4 +403,69 @@ personP = getCompose (pure PersonD <*> Compose nameP <*> Compose vornameP <*> Co
 
 readEvs :: EventStoreMonad Person m => Int -> m (Maybe PersonD)
 readEvs = project personP
+```
+
+
+# Foldable
+
+## *WTF*s
+
+```haskell
+> length (1,2)
+1
+
+> sum (4,2)
+2
+```
+
+## Intuition
+bekanntes Aggregieren/Fold Muster
+
+## Typklasse
+
+```haskell
+class Foldable t where
+  foldr :: (a -> b -> b) -> b -> t a -> b
+  foldMap :: Monoid m => (a -> m) -> t a -> m
+```
+
+---
+
+### Übung
+implementiere `foldR` nur mit `foldMap`
+
+#### Lösung
+
+```haskell
+newtype Endo a = Endo { appEndo :: a -> a }
+
+
+instance Monoid (Endo a) where
+  mempty                  = Endo id
+  Endo f `mappend` Endo g = Endo (f . g)
+
+
+foldR :: Foldable t => (a -> b -> b) -> b -> t a -> b
+foldR f b = flip appEndo b . foldMap (Endo . f)
+```
+
+---
+
+### Frage
+Was wäre nötig um `foldMap` mit `fold :: Monoid m => t m -> m` zu implementieren?
+
+```haskell
+import Control.Monad (join)
+import Data.Foldable
+
+foldMap' :: (Foldable t, Monoid m, Monad t) => (a -> t m) -> t a -> m
+foldMap' f as = fold $ join (fmap f as)
+```
+
+---
+
+## Komposierbar?
+
+```haskell
+:t foldMap . foldMap
 ```
