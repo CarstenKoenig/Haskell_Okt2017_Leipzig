@@ -10,7 +10,7 @@ module EventStore.Projections
 where
 
 import Data.Maybe (catMaybes)
-import Data.List (foldl')
+import Data.Foldable (foldl')
 import Control.Applicative ((<|>))
 import Control.Arrow ((***))
 
@@ -32,7 +32,7 @@ instance Applicative (Projection ev) where
   pF <*> pX = uncurry ($) <$> zipP pF pX
 
 
-getResult :: Projection ev a -> [ev] -> a
+getResult :: Foldable f => Projection ev a -> f ev -> a
 getResult (MkProj init fold final) =
   final . foldl' fold init
 
