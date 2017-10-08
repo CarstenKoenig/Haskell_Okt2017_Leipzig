@@ -7,7 +7,7 @@ import GHC.Generics
 data Person
   = NameGesetzt String
   | VornameGesetzt String
-  | AlterGesetzt String
+  | AlterGesetzt Int
   deriving (Show, Generic)
 
 

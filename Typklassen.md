@@ -209,3 +209,113 @@ showAlg (MulF a b) = a ++ " * " ++ b
 showExpr :: Expr -> String
 showExpr = cata showAlg
 ```
+
+
+# Applicative Funktoren
+
+## Intuition
+was, wenn die Funktion, die wir anwenden wollen, selbst
+im *Kontext* *verpackt ist*?
+
+mit `Applicative` können *verpackte* Funktionen auf *verpackte* Werte anwenden
+
+## Typklasse
+
+```haskell
+class Functor f => Applicative f where
+  pure :: a -> f a
+  (<*>) :: f (a -> b) -> f a -> f b
+```
+
+## Laws
+
+- Identity: `pure id <*> v = v`
+- Homomorphism: `pure f <*> pure x = pure (f x)`
+- Interchange: `u <*> pure y = pure ($ y) <*> u` (die Reihenfolge der Auswertung ist egal)
+- Composition: `u <*> (v <*> w) = pure (.) <*> u <*> v <*> w` (ein wenig wie Assoziativität)
+
+mit Funktor:
+
+- `g <$> x = pure g <*> x`
+
+
+## Beispiele
+
+### Maybe
+
+```haskell
+> Just (+) <*> Just 5 <*> Just 6
+Just 11
+
+> Just (+) <*> Nothing <*> Just 6
+Nothing
+
+> Nothing <*> Just 5
+Nothing
+```
+
+### Listen
+
+Es gibt zwei Möglichkeiten Listen zu einer Instanz von `Applicative` zu machen:
+
+- Funktionen-Liste und Werte-Liste paarzweise anwenden
+- jede Funktion in der Funktionen-Liste mit jedem Wert in der Werte-Liste applizieren
+
+---
+
+#### Übung
+Newtypes für die beiden Möglichkeiten und Applicative implementieren
+
+##### Lösung
+```haskell
+newtype ZipList a = ZipList [a]
+  deriving (Show, Functor)
+
+instance Applicative ZipList where
+  pure = ZipList . repeat
+  ZipList fs <*> ZipList xs = ZipList $ zipWith ($) fs xs
+
+
+newtype CompList a = CompList [a]
+  deriving (Show, Functor)
+
+instance Applicative CompList where
+  pure a = CompList [a]
+  CompList fs <*> CompList xs =
+    CompList $ [ f x | f <- fs, x <- xs ]
+```
+
+---
+
+### Paare
+Wie könnte eine Instanz für `(,) a` aussehen?
+
+- Für `pure x :: x -> (a,x)` brauchen wir einen Wert für `a0 :: a`
+- Für `(a1,f) <*> (a2,x) = (a1 ? a2, f x)` müssen wir uns etwas für `? :: a -> a -> a` ausdenken
+   - `pure id <*> (a,x) = (a0, id) <*> (a0 ? a x) =(law)= (a, x)` - d.h. `a0 ? a = a`
+   - analog wegen interchange für `a ? a0 = a`
+   - Composition schließlich heißt `a1 ? (a2 ? a3) = (a1 ? a2) ? a3`
+   - eine derartige Operation heißt **Monoid** und dafür gibt es bereits eine Typklasse
+
+```haskell
+newtype Paar a b = Paar (a, b)
+  deriving (Show, Functor)
+
+instance Monoid a => Applicative (Paar a) where
+  pure a = Paar (mempty, a)
+  Paar (a,f) <*> Paar (b,x) = Paar (a `mappend` b, f x)
+```
+
+---
+
+### Übung
+Implemntiere `sequenceAL :: Applicative f => [f a] -> f [a]`
+
+#### Lösung
+```haskell
+sequenceAL :: Applicative f => [f a] -> f [a]
+sequenceAL = foldr (liftA2 (:)) (pure [])
+```
+
+---
+

@@ -13,3 +13,18 @@ papersize: a4
 - [Monaden Transformer](MonadTrans.md)
 - [Persist - DB Zugriff](Persist.md)
 - [Aeson - Json Decode/Encode](Aeson.md)
+
+
+# Tricks
+
+## sqlite ansehen
+```bash
+sqlite3 "test.db"
+> select * from event;
+...
+> .exit
+```
+
+## Bash
+
+- STDERR verschlucken: `befehl 2>/dev/null`

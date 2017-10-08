@@ -14,6 +14,7 @@ module EventStore.Sqlite
   , testComputation
   ) where
 
+import Control.Monad.IO.Class
 import Control.Monad.Logger
 import Control.Monad.Reader
 import Data.Aeson
@@ -44,10 +45,14 @@ newtype SqlStoreMonad ev a = SqlStoreMonad (ReaderT SqlBackend (LoggingT IO) a)
 
 runSqlitePool :: Text -> Int -> SqlStoreMonad ev a -> IO a
 runSqlitePool conStr poolSize (SqlStoreMonad m) =
-  runStdoutLoggingT $ withSqlitePool conStr poolSize $ \pool ->
+  runStderrLoggingT $ withSqlitePool conStr poolSize $ \pool ->
     flip runSqlPool pool $ do
       runMigration migrateAll
       m
+
+
+instance MonadIO (SqlStoreMonad ev) where
+  liftIO = SqlStoreMonad . liftIO
 
 
 instance (FromJSON ev, ToJSON ev) => EventStoreMonad ev (SqlStoreMonad ev) where
