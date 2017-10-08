@@ -3,7 +3,10 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE FunctionalDependencies #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
-module EventStore.Memory where
+module EventStore.Memory
+  ( runMemory
+  , exampleComp
+  ) where
 
 import EventStore.Class
 

@@ -1,11 +1,12 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE LambdaCase #-}
 module Main where
 
 import Control.Monad.IO.Class (liftIO)
+import Data.Functor.Compose (Compose(..))
 import Events
-import EventStore.Class
-import EventStore.Sqlite
+import EventStore
 import System.Environment (getArgs)
 import Text.Read (readMaybe)
 
@@ -31,5 +32,23 @@ initDb = do
   addEvent key (AlterGesetzt 37)
 
 
-readEvs :: EventStoreMonad Person m => Int -> m [Person]
-readEvs = getEvents
+data PersonD = PersonD String String Int
+  deriving Show
+
+
+personP :: Projection Person (Maybe PersonD)
+personP = getCompose (pure PersonD <*> Compose nameP <*> Compose vornameP <*> Compose alterP)
+  where
+    nameP = lastP (
+      \case NameGesetzt n -> Just n
+            _             -> Nothing)
+    vornameP = lastP (
+      \case VornameGesetzt v -> Just v
+            _                -> Nothing)
+    alterP = lastP (
+      \case AlterGesetzt a -> Just a
+            _              -> Nothing)
+
+
+readEvs :: EventStoreMonad Person m => Int -> m (Maybe PersonD)
+readEvs = project personP

@@ -319,3 +319,88 @@ sequenceAL = foldr (liftA2 (:)) (pure [])
 
 ---
 
+## heftiges Beispiel: Projektionen
+
+```haskell
+{-# LANGUAGE ExistentialQuantification #-}
+{-# LANGUAGE FlexibleInstances #-}
+
+module EventStore.Projections
+  ( Projection
+  , getResult
+  , liftP
+  , lastP, collectP, projectP
+  )
+where
+
+import Data.Maybe (catMaybes)
+import Data.List (foldl')
+import Control.Applicative ((<|>))
+import Control.Arrow ((***))
+
+
+data Projection ev a =
+  forall s . MkProj
+  { state :: s
+  , fold :: s -> ev -> s
+  , final :: s -> a
+  }
+
+
+instance Functor (Projection ev) where
+  fmap f (MkProj s fd fi) = MkProj s fd (f . fi)
+
+
+instance Applicative (Projection ev) where
+  pure a = MkProj () const (const a)
+  pF <*> pX = uncurry ($) <$> zipP pF pX
+
+
+zipP :: Projection ev a -> Projection ev b -> Projection ev (a,b)
+zipP (MkProj ia fda fia) (MkProj ib fdb fib) =
+  MkProj (ia,ib) fold (fia *** fib)
+  where
+    fold (sa,sb) ev = (fda sa ev, fdb sb ev)
+
+
+getResult :: Projection ev a -> [ev] -> a
+getResult (MkProj init fold final) =
+  final . foldl' fold init
+
+
+lastP :: (ev -> Maybe a) -> Projection ev (Maybe a)
+lastP sel = MkProj Nothing fold id
+  where fold s ev = sel ev <|> s
+```
+
+### Verwendung
+```haskell
+import Data.Functor.Compose (Compose(..))
+
+
+project :: EventStoreMonad ev m => Projection ev a -> Int -> m a
+project p key =
+  getResult p <$> getEvents key
+
+
+data PersonD = PersonD String String Int
+  deriving Show
+
+
+personP :: Projection Person (Maybe PersonD)
+personP = getCompose (pure PersonD <*> Compose nameP <*> Compose vornameP <*> Compose alterP)
+  where
+    nameP = lastP (
+      \case NameGesetzt n -> Just n
+            _             -> Nothing)
+    vornameP = lastP (
+      \case VornameGesetzt v -> Just v
+            _                -> Nothing)
+    alterP = lastP (
+      \case AlterGesetzt a -> Just a
+            _              -> Nothing)
+
+
+readEvs :: EventStoreMonad Person m => Int -> m (Maybe PersonD)
+readEvs = project personP
+```
