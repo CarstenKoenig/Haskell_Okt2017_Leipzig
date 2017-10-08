@@ -32,11 +32,12 @@ instance EventStoreMonad ev (MemoryStoreMonad ev) where
     modify (Map.insertWith (++) key [ev])
 
 
-exampleComp :: EventStoreMonad String m => m [String]
+exampleComp :: (MonadError String m, EventStoreMonad String m) => m [String]
 exampleComp = do
   key <- newAggregate
   addEvent key "Ev1"
   addEvent key "Ev2"
+  throwError "huh"
   getEvents key
 
 
