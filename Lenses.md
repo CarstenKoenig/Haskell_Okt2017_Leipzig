@@ -141,3 +141,80 @@ setVorname = setVL personVorname
 getVorname :: Person -> String
 getVorname = viewVL personVorname
 ```
+
+
+# lens - Library
+Um *lenses* zu Definieren kann man `lens` benutzen:
+
+```haskell
+import Control.Lens
+
+data Name = Name
+  { vorname :: String
+  , nachname :: String
+  } deriving Show
+
+
+vornameL :: Lens' Name String
+vornameL = lens vorname (\n v -> n { vorname = v })
+```
+
+oder Template-Haskell benutzen:
+
+```haskell
+{-# LANGUAGE TemplateHaskell #-}
+
+module Lenses where
+
+import Control.Lens
+
+-- ein paar Records
+
+data Name = Name
+  { _vorname :: String
+  , _nachname :: String
+  } deriving Show
+
+
+makeLenses ''Name
+
+
+beispielName :: Name
+beispielName = Name "Max" "Muster"
+
+
+data Person = Person
+  { _name :: Name
+  , _email :: String
+  } deriving Show
+
+
+makeLenses ''Person
+
+
+maxMuster :: Person
+maxMuster = Person (Name "Max" "Muster") "max.muster@mail.me"
+```
+
+## Funktionen
+`view`, `over` und `set` arbeiten wie bisher, haben aber etwas
+*einschüchternde* Signaturen ([siehe Docs](https://hackage.haskell.org/package/lens-4.15.3/docs/Control-Lens-Getter.html#v:view))
+
+Außerdem ist `view` *magsich* die Reihenfolge egal!
+
+Hintergrund ist, dass die nicht nur auf Lenses sondern auf mehr Typen der `lens` Lib. funktionieren.
+
+## Operatoren
+
+[siehe Cheatcheat](https://github.com/ekmett/lens/wiki/Operators)
+
+- `^.` = `view`- Beispiel: `name . vorname ^. maxMuster`
+- `.~` = `set` - Beispiel: `maxMuster & name . vorname .~ "Karl"`
+- `%~` = `over` - Beispiel: `maxMuster & name . vorname %~ fmap toUpper`
+- Opeatoren mit `=` funktionieren im State-Monad:
+
+```haskell
+> import Control.Monad.State
+> flip runState (1,"Hallo") $ _2 %= fmap toUpper
+((),(1,"HALLO"))
+```
