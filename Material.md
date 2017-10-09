@@ -11,8 +11,10 @@ papersize: a4
 
 - [Typklassen](Typklassen.md)
 - [Monaden Transformer](MonadTrans.md)
+- [Lenses](Lenses.md)
 - [Persist - DB Zugriff](Persist.md)
 - [Aeson - Json Decode/Encode](Aeson.md)
+- [Scotty](Scotty.md)
 
 
 # Tricks
