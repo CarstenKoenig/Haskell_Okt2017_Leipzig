@@ -218,3 +218,25 @@ Hintergrund ist, dass die nicht nur auf Lenses sondern auf mehr Typen der `lens`
 > flip runState (1,"Hallo") $ _2 %= fmap toUpper
 ((),(1,"HALLO"))
 ```
+
+## arbeiten mit Maps
+
+[siehe Doc-Modul](https://hackage.haskell.org/package/lens-4.15.4/docs/Data-Map-Lens.html)
+
+```haskell
+> import Data.Map.Strict
+> fromList [(1,"Hallo")] ^. at 1
+Just "Hallo"
+
+> fromList [(1,"Hallo")] ^. at 2
+Nothing
+
+> fromList [(1,"Hallo")] & at 2 .~ Just "World"
+fromList [(1,"Hallo"),(2,"World")]
+
+>fromList [(1,"Hallo")] & at 1 .~ Nothing
+fromList []
+
+> fromList [(1,"Hallo")] & at 1 ?~ "Hey"
+fromList [(1,"Hey")]
+```
