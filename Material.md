@@ -28,3 +28,4 @@ sqlite3 "test.db"
 ## Bash
 
 - STDERR verschlucken: `befehl 2>/dev/null`
+- alle PDFs erzeugen mit `for f in *.md ; do echo "$f"; pandoc "$f" -o "${f%.md}.pdf" ; done`

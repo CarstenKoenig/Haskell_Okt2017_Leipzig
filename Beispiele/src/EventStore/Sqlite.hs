@@ -11,6 +11,8 @@
 
 module EventStore.Sqlite
   ( runSqlitePool
+  , runWithSqlPool
+  , SqlStoreMonad
   , testComputation
   ) where
 
@@ -43,12 +45,16 @@ newtype SqlStoreMonad ev a = SqlStoreMonad (ReaderT SqlBackend (LoggingT IO) a)
   deriving (Functor, Applicative, Monad)
 
 
-runSqlitePool :: Text -> Int -> SqlStoreMonad ev a -> IO a
-runSqlitePool conStr poolSize (SqlStoreMonad m) =
-  runStderrLoggingT $ withSqlitePool conStr poolSize $ \pool ->
-    flip runSqlPool pool $ do
-      runMigration migrateAll
-      m
+runSqlitePool :: Text -> Int -> (Pool SqlBackend -> IO a) -> IO a
+runSqlitePool conStr poolSize m =
+  runStderrLoggingT $ withSqlitePool conStr poolSize $ \pool -> do
+  runSqlPool (runMigration migrateAll) pool
+  liftIO $ m pool
+
+
+runWithSqlPool :: Pool SqlBackend -> SqlStoreMonad ev a -> IO a
+runWithSqlPool pool (SqlStoreMonad m) =
+    runStderrLoggingT $ runSqlPool m pool
 
 
 instance MonadIO (SqlStoreMonad ev) where

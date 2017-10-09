@@ -14,7 +14,7 @@ import Text.Read (readMaybe)
 main :: IO ()
 main = do
   args <- getArgs
-  runSqlitePool "test.db" 1 $ do
+  runSqlitePool "test.db" 1 $ \pool -> runWithSqlPool pool $ do
     if null args
       then initDb
       else case readMaybe (head args) of
