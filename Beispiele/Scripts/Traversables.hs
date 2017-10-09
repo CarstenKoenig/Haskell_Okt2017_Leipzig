@@ -17,5 +17,6 @@ instance Traversable MyList where
 fmap' :: Traversable t => (a -> b) -> t a -> t b
 fmap' f xs = runIdentity $ traverse (Identity . f) xs
 
+
 foldMap' :: (Monoid m, Traversable t) => (a -> m) -> t a -> m
 foldMap' f xs = fst $ traverse (\a -> (f a, ())) xs

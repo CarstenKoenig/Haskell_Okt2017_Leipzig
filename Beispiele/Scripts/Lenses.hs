@@ -27,6 +27,7 @@ maxMuster :: Person
 maxMuster = Person (Name "Max" "Muster") "max.muster@mail.me"
 
 
+
 ----------------------------------------------------------------------
 -- naive Implementation
 
