@@ -1,13 +1,8 @@
----
-title: "Haskell für Fortgeschrittene - Workshop"
-author: Carsten König
-date: Oktober 2017
-geometry: margin=2cm
-output: pdf_document
-papersize: a4
----
+# Haskell Workshop
 
-# Inhaltsverzeichnis
+**Oktober 2017 - Leipzig**
+
+## Inhaltsverzeichnis
 
 - [Typklassen](Typklassen.md)
 - [Monaden Transformer](MonadTrans.md)
@@ -17,9 +12,9 @@ papersize: a4
 - [Scotty](Scotty.md)
 
 
-# Tricks
+## Tricks
 
-## sqlite ansehen
+### sqlite ansehen
 ```bash
 sqlite3 "test.db"
 > select * from event;
@@ -27,7 +22,7 @@ sqlite3 "test.db"
 > .exit
 ```
 
-## Bash
+### Bash
 
 - STDERR verschlucken: `befehl 2>/dev/null`
 - alle PDFs erzeugen mit `for f in *.md ; do echo "$f"; pandoc "$f" -o "${f%.md}.pdf" ; done`
