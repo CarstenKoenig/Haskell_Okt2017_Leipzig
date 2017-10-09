@@ -240,3 +240,31 @@ fromList []
 > fromList [(1,"Hallo")] & at 1 ?~ "Hey"
 fromList [(1,"Hey")]
 ```
+
+
+# noch tiefer in den Kaninchenbau
+bisher immer `Lens'` - ganz allgemein ist es aber
+
+```haskell
+type Lens s t a b = forall f . Functor f => (a -> f b) -> s -> f t
+```
+
+die Operatoren sind aber allgemeiner:
+
+```haskell
+> ("Hey","Du")
+("Hey","Du") :: (String, String)
+
+> over _1 length it
+(3,"Du") :: (Int, "Du")
+```
+
+der Zieltyp hat sich hier also geändert!
+
+Bisher:
+
+```haskell
+type Lens' s a = Lens s s a a
+```
+
+

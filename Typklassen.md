@@ -211,6 +211,90 @@ showExpr = cata showAlg
 ```
 
 
+
+# Monoid
+## Intuition
+Ein Monoid ist eine mathematische Operation auf einer Menge.
+Übersetzt in Haskell geht es natürlich eher um eine Funktion/Operation
+auf einem (festen) Typ `a`:
+
+    op :: a -> a -> a
+    
+diese muss ein zwei Regeln erfüllen:
+
+- assoziativ: ``(a `op` b) `op` c == a `op` (b `op` c)``
+- gibt ein neutrales Element `e` mit ``a `op` e == e `op` a == a`` für alle `a`
+
+## Typklasse
+```haskell
+class Monoid a where
+  mempty :: a
+  mappend :: a -> a -> a
+  mconcat :: [a] -> a
+```
+
+`mconcat` hat eine default-Implementation mit `foldr`:
+
+```haskell
+mconcat = foldr mappend mempty
+```
+
+das ist da, damit Typen eine effizientere Implementation vornehmen können,
+wenn sie wollen (bei Monoids ist es z.B. möglich die Operationen parallel)
+durchzuführen.
+
+compile with `stack ghc -- -O2 -threaded Monoids.hs`
+and run with either `+RTS -N1 -s` or `+RTS -N2 -s`
+`+RTS` (RunTimeSystem - see [here](https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/runtime_control.html))
+- `-N2` says 2 Cores
+- `-s` says print stats
+
+### Beispiel Par-Monad
+```haskell
+import Control.Parallel
+import Data.List
+
+-- I've taken this staright from [this great answer](https://stackoverflow.com/a/19119503/76051) on Stack-Overflow
+
+pfold :: (Num a, Enum a) => (a -> a -> a) -> [a] -> a
+pfold _ [x] = x
+pfold mappend xs  = (ys `par` zs) `pseq` (ys `mappend` zs) where
+  len = length xs
+  (ys', zs') = splitAt (len `div` 2) xs
+  ys = pfold mappend ys'
+  zs = pfold mappend zs'
+
+main :: IO ()
+main =
+  print $ pfold (+) [ foldl' (*) 1 [1..x] | x <- [1..5000] ]
+```
+
+## Instanzen
+
+- `[a]` (leere Liste und `++`)
+- Zahlen mit Addition und 0 oder Multiplikation und 1
+- `All`, `Any` (Bool-Wrapper für `True`/`&&` bzw. `False`/`||` )
+- `Endo : a -> a`
+
+---
+
+### Übung
+Implementiere Monoid-Instanz für `newtype Endo a = Endo { appEndo :: a -> a }`
+
+#### Lösung
+```haskell
+newtype Endo a = Endo { appEndo :: a -> a }
+
+
+instance Monoid (Endo a) where
+  mempty                  = Endo id
+  Endo f `mappend` Endo g = Endo (f . g)
+
+```
+
+
+
+
 # Applicative Funktoren
 
 ## Intuition
@@ -406,86 +490,6 @@ readEvs = project personP
 ```
 
 
-# Monoid
-## Intuition
-Ein Monoid ist eine mathematische Operation auf einer Menge.
-Übersetzt in Haskell geht es natürlich eher um eine Funktion/Operation
-auf einem (festen) Typ `a`:
-
-    op :: a -> a -> a
-    
-diese muss ein zwei Regeln erfüllen:
-
-- assoziativ: ``(a `op` b) `op` c == a `op` (b `op` c)``
-- gibt ein neutrales Element `e` mit ``a `op` e == e `op` a == a`` für alle `a`
-
-## Typklasse
-```haskell
-class Monoid a where
-  mempty :: a
-  mappend :: a -> a -> a
-  mconcat :: [a] -> a
-```
-
-`mconcat` hat eine default-Implementation mit `foldr`:
-
-```haskell
-mconcat = foldr mappend mempty
-```
-
-das ist da, damit Typen eine effizientere Implementation vornehmen können,
-wenn sie wollen (bei Monoids ist es z.B. möglich die Operationen parallel)
-durchzuführen.
-
-compile with `stack ghc -- -O2 -threaded Monoids.hs`
-and run with either `+RTS -N1 -s` or `+RTS -N2 -s`
-`+RTS` (RunTimeSystem - see [here](https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/runtime_control.html))
-- `-N2` says 2 Cores
-- `-s` says print stats
-
-### Beispiel Par-Monad
-```haskell
-import Control.Parallel
-import Data.List
-
--- I've taken this staright from [this great answer](https://stackoverflow.com/a/19119503/76051) on Stack-Overflow
-
-pfold :: (Num a, Enum a) => (a -> a -> a) -> [a] -> a
-pfold _ [x] = x
-pfold mappend xs  = (ys `par` zs) `pseq` (ys `mappend` zs) where
-  len = length xs
-  (ys', zs') = splitAt (len `div` 2) xs
-  ys = pfold mappend ys'
-  zs = pfold mappend zs'
-
-main :: IO ()
-main =
-  print $ pfold (+) [ foldl' (*) 1 [1..x] | x <- [1..5000] ]
-```
-
-## Instanzen
-
-- `[a]` (leere Liste und `++`)
-- Zahlen mit Addition und 0 oder Multiplikation und 1
-- `All`, `Any` (Bool-Wrapper für `True`/`&&` bzw. `False`/`||` )
-- `Endo : a -> a`
-
----
-
-### Übung
-Implementiere Monoid-Instanz für `newtype Endo a = Endo { appEndo :: a -> a }`
-
-#### Lösung
-```haskell
-newtype Endo a = Endo { appEndo :: a -> a }
-
-
-instance Monoid (Endo a) where
-  mempty                  = Endo id
-  Endo f `mappend` Endo g = Endo (f . g)
-
-```
-
 # Foldable
 
 ## *WTF*s
@@ -541,3 +545,62 @@ foldMap' f as = fold $ join (fmap f as)
 ```haskell
 :t foldMap . foldMap
 ```
+
+
+# Traversable
+
+## Typklasse
+```haskell
+class (Functor t, Foldable t) => Traversable t where
+  traverse :: Applicative f => (a -> f b) -> t a -> f (t b)
+  sequenceA :: Applicative f => t (f a) -> f (t a)
+```
+
+## Intuition
+Verallgemeinert den Funktor - jetzt kann die Abbildung Seiteneffekte haben
+die durch `traverse` zusammengefasst werden.
+
+Schaut man sich `sequenceA` an, kann man sich das als Möglichkeit vorstellen
+Funktoren zu kommutieren (herauszuziehen)
+
+schau `traverse . traverse` an
+
+## Laws
+
+- `traverse Identity = Identity`
+- `traverse (Compose . fmap g . f) = Compose . fmap (traverse g) . traverse f`
+
+## Beispiele
+### Implementiere für `MyList`
+
+```haskell
+newtype MyList a = MyList [a]
+  deriving (Functor, Foldable, Show, Eq)
+
+instance Traversable MyList where
+  traverse _ (MyList []) =
+    pure (MyList [])
+  traverse f (MyList (x:xs)) =
+    pure (\y (MyList ys) -> MyList (y:ys)) <*> f x <*> traverse f (MyList xs)
+```
+
+---
+
+### Übung (hart)
+implementiere `foldMap` nur mit Traversable-Methoden
+
+Hinweis: `(,)` hat eine seltsame `Applicative` Instanz
+
+#### Lösung
+```haskell
+fmap' :: Traversable t => (a -> b) -> t a -> t b
+fmap' f xs = runIdentity $ traverse (Identity . f) xs
+
+
+foldMap' :: (Monoid m, Traversable t) => (a -> m) -> t a -> m
+foldMap' f xs = fst $ traverse (\a -> (f a, ())) xs
+```
+
+## siehe auch
+
+[the Essence of the Iterator Pattern](http://www.cs.ox.ac.uk/jeremy.gibbons/publications/iterator.pdf)
