@@ -248,13 +248,13 @@ class Monad m => EventStoreMonad ev m | m -> ev where
   getEvents :: Int -> m [ev]
 
 
-newtype MemoryStoreMonad ev a = MemoryStoreMonad (StateT (Map.Map Int [ev]) (Except String) a)
+newtype MemoryStoreMonad ev a = MemoryStoreMonad (ExceptT String (State (Map.Map Int [ev])) a)
   deriving (Functor, Applicative, Monad, MonadState (Map.Map Int [ev]), MonadError String)
 
 
-runMemory :: Map.Map Int [ev] -> MemoryStoreMonad ev a -> Either String ((a, Map Int [ev]))
+runMemory :: Map.Map Int [ev] -> MemoryStoreMonad ev a -> (Either String a, Map Int [ev])
 runMemory map (MemoryStoreMonad m )=
-  runExcept $ runStateT m map
+  flip runState map $ runExceptT m
   
   
 instance EventStoreMonad ev (MemoryStoreMonad ev) where

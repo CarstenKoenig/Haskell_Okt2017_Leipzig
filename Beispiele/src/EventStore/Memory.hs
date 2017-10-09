@@ -15,7 +15,7 @@ import Control.Monad.Except
 
 import Data.Map.Strict as Map
 
-newtype MemoryStoreMonad ev a = MemoryStoreMonad (StateT (Map.Map Int [ev]) (Except String) a)
+newtype MemoryStoreMonad ev a = MemoryStoreMonad (ExceptT String (State (Map.Map Int [ev])) a)
   deriving (Functor, Applicative, Monad, MonadState (Map.Map Int [ev]), MonadError String)
 
 
@@ -44,6 +44,6 @@ exampleComp = do
   getEvents key
 
 
-runMemory :: Map.Map Int [ev] -> MemoryStoreMonad ev a -> Either String ((a, Map Int [ev]))
+runMemory :: Map.Map Int [ev] -> MemoryStoreMonad ev a -> (Either String a, Map Int [ev])
 runMemory map (MemoryStoreMonad m )=
-  runExcept $ runStateT m map
+  flip runState map $ runExceptT m
