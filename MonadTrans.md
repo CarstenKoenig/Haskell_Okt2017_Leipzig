@@ -272,3 +272,7 @@ instance EventStoreMonad ev (MemoryStoreMonad ev) where
   addEvent key ev =
     modify (Map.insertWith (++) key [ev])
 ```
+
+# interessante Links
+
+- Mark P. Jones: [Functional Programming with Overloading and Higher-Order Polymorphism](http://web.cecs.pdx.edu/~mpj/pubs/springschool.html)
