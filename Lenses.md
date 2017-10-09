@@ -1,5 +1,5 @@
 ---
-title: "Haskell für Fortgeschrittene - Monaden-Transformer"
+title: "Haskell für Fortgeschrittene - Lenses"
 author: Carsten König
 date: Oktober 2017
 geometry: margin=2cm
