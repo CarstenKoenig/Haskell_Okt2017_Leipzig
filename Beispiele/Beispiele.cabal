@@ -43,6 +43,7 @@ executable Countdown
                      , ansi-terminal
                      , time
                      , stm
+                     , fdo-notify
   default-language:    Haskell2010
 
 executable Webstore

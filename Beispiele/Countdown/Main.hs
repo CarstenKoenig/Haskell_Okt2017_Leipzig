@@ -8,8 +8,9 @@ import           Control.Concurrent.STM.TQueue (TQueue(..))
 import qualified Control.Concurrent.STM.TQueue as TQueue
 import           Control.Concurrent.STM.TVar (TVar(..))
 import qualified Control.Concurrent.STM.TVar as TVar
-import           Control.Monad (forever)
+import           Control.Monad (forever, void)
 
+import qualified DBus.Notify as N
 import           Data.Maybe (fromMaybe)
 import           Data.Time.Clock (UTCTime)
 import qualified Data.Time.Clock as Clock
@@ -25,13 +26,14 @@ main = do
   hSetBuffering stdin NoBuffering
   hSetBuffering stdout NoBuffering
   hSetEcho stdin False
+  client <- N.connectSession
 
   Console.clearScreen
   Console.hideCursor
 
   state <- initialState
   tiId  <- tickLoop state
-  thId  <- messageLoop state
+  thId  <- messageLoop client state
   inputLoop state
 
   killThread tiId
@@ -86,20 +88,32 @@ data Messages
   | Tick UTCTime
 
 
+data SideEffect
+  = NotifyAlarm
+  | None
+
+
 -- | alle Zustandsänderungen am Model geschehen in dieser Funktion!
-update :: Messages -> Model -> Model
+update :: Messages -> Model -> (Model, SideEffect)
 update Add10Seconds model@(Setting secs) =
-  model { setSeconds = secs + 10 }
+  (model { setSeconds = secs + 10 }, None)
 update (StartStop now) (Setting secs) =
-  Running $ Clock.addUTCTime (fromIntegral secs) now
+  (Running $ Clock.addUTCTime (fromIntegral secs) now, None)
 update (Tick now) model@(Running till)
-  | now >= till = Alarm
-  | otherwise   = model
+  | now >= till = (Alarm, NotifyAlarm)
+  | otherwise   = (model, None)
 update (StartStop now) (Running _) =
-  Setting 0
+  (Setting 0, None)
 update Add10Seconds Alarm =
-  Setting 10
-update _ model = model
+  (Setting 10, None)
+update _ model =
+  (model, None)
+
+
+execute :: N.Client -> SideEffect -> IO ()
+execute _ None = pure ()
+execute client NotifyAlarm =
+  void $ showNotification client "A L A R M!!!" "countdown passed"
 
 
 -- | die Input-Loop überwacht die Tastatureingaben und gibt Kommandos in die Message-Queue weiter
@@ -124,13 +138,14 @@ inputLoop state = loop
 
 -- | erzeugt einen neuen Thread der die Messagequeue überwacht
 -- und das Modell auf den Bildschirm bringt
-messageLoop :: State -> IO ThreadId
-messageLoop state = do
+messageLoop :: N.Client -> State -> IO ThreadId
+messageLoop client state = do
   model <- atomically $ TVar.readTVar $ curModel state
   view model
   forkIO $ forever $ do
-    model <- atomically $ updateState state
+    (model, seff) <- atomically $ updateState state
     view model
+    execute client seff
 
 -- | erzeugt einen neuen Thread der regelmäßig eine Tick-Message in die Queue stellt
 tickLoop :: State -> IO ThreadId
@@ -140,13 +155,13 @@ tickLoop state = forkIO $ forever $ do
   atomically $ flip TQueue.writeTQueue (Tick now) $ messages state
 
 
-updateState :: State -> STM Model
+updateState :: State -> STM (Model, SideEffect)
 updateState state = do
   msg <- TQueue.readTQueue $ messages state
   model <- TVar.readTVar $ curModel state
-  let model' = update msg model
+  let (model', seff) = update msg model
   flip TVar.writeTVar model' $ curModel state
-  return model'
+  return (model', seff)
 
 ----------------------------------------------------------------------
 -- View
@@ -174,6 +189,15 @@ viewModel Alarm =
 viewAlarm :: IO ()
 viewAlarm = do
   putStr "A L A R M !!!"
+
+
+showNotification :: N.Client -> String -> String -> IO N.Notification
+showNotification client sum bdy = do
+  N.notify client startNote
+  where
+    appNote = N.blankNote { N.appName = "Haskell Countdown" }
+    startNote = appNote { N.summary = sum
+                        , N.body= (Just $ N.Text bdy) }
 
 
 viewCountdown :: UTCTime -> IO ()
